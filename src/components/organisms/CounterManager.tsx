@@ -5,10 +5,19 @@ import {
   IUpdateCounterRequest,
 } from "@/interfaces/services/counter.interface";
 import React, { useState } from "react";
+// Impor Hooks dari service wrapper yang sudah kita buat
+import {
+  useGetAllCounters,
+  useCreateCounter,
+  useUpdateCounter,
+  useDeleteCounter,
+} from "@/services/counter/wrapper.service";
+
 import Button from "../atoms/Button";
 import Card from "../atoms/Card";
 import CounterCard from "../molecules/CounterCard";
 import CounterForm from "../molecules/CounterForm";
+import toast from "react-hot-toast";
 
 interface CounterManagerProps {
   className?: string;
@@ -19,17 +28,94 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
   const [editingCounter, setEditingCounter] = useState<ICounter | null>(null);
   const [selectedCounter, setSelectedCounter] = useState<ICounter | null>(null);
 
-  const counters: ICounter[] = [];
+  // 1. INTEGRASI READ: Mengambil daftar counter
+  const { data, isLoading: isLoadingCounters, isError } = useGetAllCounters();
+  // Ambil data atau array kosong jika belum ada
+  const counters: ICounter[] = data?.data || [];
 
+  // 2. INTEGRASI CREATE, UPDATE, DELETE Hooks
+  const createMutation = useCreateCounter();
+  const updateMutation = useUpdateCounter();
+  const deleteMutation = useDeleteCounter();
+
+  // Tentukan status loading gabungan untuk form
+  const isSubmitting =
+    createMutation.status === "pending" || updateMutation.status === "pending";
+  const isDeleting = deleteMutation.status === "pending";
+
+  // 3. LOGIKA FORM SUBMIT
   const handleSubmit = (
     data: ICreateCounterRequest | IUpdateCounterRequest
-  ) => {};
+  ) => {
+    // Periksa apakah ini mode edit (ada ID)
+    if ("id" in data && data.id) {
+      // UPDATE
+      updateMutation.mutate(data as IUpdateCounterRequest, {
+        onSuccess: () => {
+          setEditingCounter(null);
+        },
+      });
+    } else {
+      // CREATE
+      createMutation.mutate(data as ICreateCounterRequest, {
+        onSuccess: () => {
+          setIsAddingCounter(false);
+        },
+      });
+    }
+  };
 
-  const handleCounterClick = (counter: ICounter) => {};
+  const handleCounterClick = (counter: ICounter) => {
+    setSelectedCounter((prev) => (prev?.id === counter.id ? null : counter));
+  };
 
-  const handleEditCounter = () => {};
+  const handleEditCounter = () => {
+    if (selectedCounter) {
+      setEditingCounter(selectedCounter);
+      setSelectedCounter(null); // Deselect saat mulai mengedit
+    }
+  };
 
-  const handleDeleteCounter = () => {};
+  // 4. LOGIKA DELETE
+  const handleDeleteCounter = () => {
+    if (selectedCounter) {
+      if (
+        !window.confirm(
+          `Yakin ingin menghapus counter ${selectedCounter.name}?`
+        )
+      ) {
+        return;
+      }
+
+      deleteMutation.mutate(selectedCounter.id, {
+        onSuccess: () => {
+          setSelectedCounter(null); // Hapus seleksi setelah sukses
+        },
+        onError: (error) => {
+          // Notifikasi error sudah ditangani di wrapper.service.ts
+        },
+      });
+    } else {
+      toast.error("Pilih counter yang ingin dihapus terlebih dahulu.");
+    }
+  };
+
+  // 5. Tampilkan Loading State Global
+  if (isLoadingCounters) {
+    return (
+      <Card variant="outline" className="text-center py-8 text-gray-500">
+        <p>Memuat data counter...</p>
+      </Card>
+    );
+  }
+
+  if (isError) {
+    return (
+      <Card variant="outline" className="text-center py-8 text-red-700">
+        <p>Gagal memuat data counter. Silakan coba lagi.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className={className}>
@@ -60,7 +146,7 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
           <CounterForm
             counter={editingCounter || undefined}
             onSubmit={handleSubmit}
-            isLoading={false}
+            isLoading={isSubmitting} // Gunakan state loading dari mutation
             isEditMode={!!editingCounter}
           />
           <div className="flex justify-end mt-4">
@@ -70,6 +156,7 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
                 setIsAddingCounter(false);
                 setEditingCounter(null);
               }}
+              disabled={isSubmitting} // Disable saat sedang submit
             >
               Batal
             </Button>
@@ -85,13 +172,14 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
                 leftIcon={
                   <span className="material-symbols-outlined">edit</span>
                 }
+                disabled={isDeleting}
               >
                 Edit
               </Button>
               <Button
                 variant="danger"
                 onClick={handleDeleteCounter}
-                isLoading={false}
+                isLoading={isDeleting} // Gunakan state loading dari delete mutation
                 leftIcon={
                   <span className="material-symbols-outlined">delete</span>
                 }
@@ -101,6 +189,7 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
             </div>
           )}
 
+          {/* Gunakan variabel 'counters' yang sudah terisi dari useGetAllCounters */}
           {counters.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {counters.map((counter) => (
