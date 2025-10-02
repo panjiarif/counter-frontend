@@ -1,8 +1,16 @@
+"use client";
 import Link from "next/link";
 import React from "react";
 import Card from "../atoms/Card";
+import { useGetMetrics } from "@/services/queue/wrapper.service";
 
 const DashboardPage = () => {
+  const {
+    data: metricsData,
+    isLoading: isLoadingMetrics,
+    isError: isErrorMetrics,
+  } = useGetMetrics();
+
   const quickLinks = [
     {
       title: "Ambil Nomor Antrian",
@@ -49,57 +57,72 @@ const DashboardPage = () => {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Statistik Antrian Hari Ini
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="!bg-yellow-50 !border-yellow-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-yellow-800 text-sm font-medium">Menunggu</p>
-                <h3 className="text-3xl font-bold text-yellow-900 mt-1">1</h3>
+        {isLoadingMetrics ? (
+          <div className="text-center text-gray-500">Memuat statistik...</div>
+        ) : isErrorMetrics ? (
+          <div className="text-center text-red-500">
+            Gagal memuat statistik antrian.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="!bg-yellow-50 !border-yellow-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-yellow-800 text-sm font-medium">
+                    Menunggu
+                  </p>
+                  <h3 className="text-3xl font-bold text-yellow-900 mt-1">
+                    {metricsData?.data?.waiting ?? 0}
+                  </h3>
+                </div>
+                <span className="material-symbols-outlined text-yellow-500 text-3xl">
+                  timer
+                </span>
               </div>
-              <span className="material-symbols-outlined text-yellow-500 text-3xl">
-                timer
-              </span>
-            </div>
-          </Card>
-
-          <Card className="!bg-blue-50 !border-blue-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-blue-800 text-sm font-medium">
-                  Sedang Dilayani
-                </p>
-                <h3 className="text-3xl font-bold text-blue-900 mt-1">12</h3>
+            </Card>
+            <Card className="!bg-blue-50 !border-blue-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-blue-800 text-sm font-medium">
+                    Sedang Dilayani
+                  </p>
+                  <h3 className="text-3xl font-bold text-blue-900 mt-1">
+                    {metricsData?.data?.called ?? 0}
+                  </h3>
+                </div>
+                <span className="material-symbols-outlined text-blue-500 text-3xl">
+                  supervisor_account
+                </span>
               </div>
-              <span className="material-symbols-outlined text-blue-500 text-3xl">
-                supervisor_account
-              </span>
-            </div>
-          </Card>
-
-          <Card className="!bg-green-50 !border-green-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-green-800 text-sm font-medium">Selesai</p>
-                <h3 className="text-3xl font-bold text-green-900 mt-1">5</h3>
+            </Card>
+            <Card className="!bg-green-50 !border-green-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-green-800 text-sm font-medium">Selesai</p>
+                  <h3 className="text-3xl font-bold text-green-900 mt-1">
+                    {metricsData?.data?.released ?? 0}
+                  </h3>
+                </div>
+                <span className="material-symbols-outlined text-green-500 text-3xl">
+                  task_alt
+                </span>
               </div>
-              <span className="material-symbols-outlined text-green-500 text-3xl">
-                task_alt
-              </span>
-            </div>
-          </Card>
-
-          <Card className="!bg-red-50 !border-red-200">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-red-800 text-sm font-medium">Dilewati</p>
-                <h3 className="text-3xl font-bold text-red-900 mt-1">4</h3>
+            </Card>
+            <Card className="!bg-red-50 !border-red-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-red-800 text-sm font-medium">Dilewati</p>
+                  <h3 className="text-3xl font-bold text-red-900 mt-1">
+                    {metricsData?.data?.skipped ?? 0}
+                  </h3>
+                </div>
+                <span className="material-symbols-outlined text-red-500 text-3xl">
+                  skip_next
+                </span>
               </div>
-              <span className="material-symbols-outlined text-red-500 text-3xl">
-                skip_next
-              </span>
-            </div>
-          </Card>
-        </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       <div>
