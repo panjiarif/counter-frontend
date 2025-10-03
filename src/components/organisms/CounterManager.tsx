@@ -58,6 +58,9 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
   }
 
   // 2. INTEGRASI CREATE, UPDATE, DELETE Hooks
+  // Hook untuk reset antrian
+  const { mutate: resetQueues, status: resetStatus } =
+    require("@/services/queue/wrapper.service").useResetQueues();
   const createMutation = useCreateCounter();
   const updateMutation = useUpdateCounter();
   const deleteMutation = useDeleteCounter();
@@ -203,12 +206,32 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
               <Button
                 variant="danger"
                 onClick={handleDeleteCounter}
-                isLoading={isDeleting} // Gunakan state loading dari delete mutation
+                isLoading={isDeleting}
                 leftIcon={
                   <span className="material-symbols-outlined">delete</span>
                 }
               >
                 Hapus
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  if (selectedCounter) {
+                    if (
+                      window.confirm(
+                        `Yakin ingin reset semua antrian di counter ${selectedCounter.name}?`
+                      )
+                    ) {
+                      resetQueues({ counter_id: selectedCounter.id });
+                    }
+                  }
+                }}
+                isLoading={resetStatus === "pending"}
+                leftIcon={
+                  <span className="material-symbols-outlined">restart_alt</span>
+                }
+              >
+                Reset Antrian
               </Button>
             </div>
           )}

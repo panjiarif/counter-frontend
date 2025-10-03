@@ -112,7 +112,10 @@ const QueueTicketPage: FC<QueueTicketProps> = ({ className }) => {
             <div className="text-5xl font-bold text-blue-600 mb-4">
               {claimedQueue?.queueNumber}
             </div>
-
+            <div className="text-lg font-semibold text-gray-700 mb-2">
+              Counter Tujuan:{" "}
+              <span className="text-blue-700">{claimedQueue?.counterName}</span>
+            </div>
             <div className="bg-blue-50 rounded-lg p-4 mb-6 w-full">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Posisi:</span>

@@ -19,6 +19,13 @@ const CurrentQueueDisplay: React.FC<CurrentQueueDisplayProps> = ({
   className,
 }) => {
   const getStatusInfo = () => {
+    if (!queueNumber) {
+      return {
+        badgeVariant: "primary",
+        badgeText: "Tidak Ada Antrian",
+        cardBg: "!bg-blue-50 !border-blue-200",
+      };
+    }
     switch (status) {
       case "CLAIMED":
         return {
