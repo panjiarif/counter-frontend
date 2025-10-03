@@ -10,6 +10,8 @@ interface CounterCardProps {
   isSelected?: boolean;
   onClick?: (counter: ICounter) => void;
   className?: string;
+  currentQueue?: number | null;
+  queueStatus?: string | null;
 }
 
 const CounterCard: React.FC<CounterCardProps> = ({
@@ -17,6 +19,8 @@ const CounterCard: React.FC<CounterCardProps> = ({
   isSelected = false,
   onClick,
   className,
+  currentQueue,
+  queueStatus,
 }) => {
   const handleClick = () => {
     if (onClick) {
@@ -40,7 +44,9 @@ const CounterCard: React.FC<CounterCardProps> = ({
             {counter.name}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            Queue: {counter.currentQueue} dari {counter.maxQueue}
+            {typeof currentQueue === "number" && currentQueue !== null
+              ? `Posisi melayani: ${currentQueue} (${queueStatus ?? "-"})`
+              : "Belum ada antrian yang dilayani"}
           </p>
         </div>
         <Badge variant={counter.isActive ? "success" : "danger"}>

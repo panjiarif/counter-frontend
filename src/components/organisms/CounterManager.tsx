@@ -19,6 +19,9 @@ import CounterCard from "../molecules/CounterCard";
 import CounterForm from "../molecules/CounterForm";
 import toast from "react-hot-toast";
 
+// Import hook untuk antrian yang sedang dilayani
+import { useGetCurrentQueues } from "@/services/queue/wrapper.service";
+
 interface CounterManagerProps {
   className?: string;
 }
@@ -32,6 +35,27 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
   const { data, isLoading: isLoadingCounters, isError } = useGetAllCounters();
   // Ambil data atau array kosong jika belum ada
   const counters: ICounter[] = data?.data || [];
+
+  // Ambil antrian yang sedang dilayani di setiap counter
+  const {
+    data: currentQueuesData,
+    isLoading: isLoadingCurrentQueues,
+    isError: isErrorCurrentQueues,
+  } = useGetCurrentQueues();
+  // Bentuk: [{ id, name, currentQueue, status }]
+  const currentQueuesDetail: {
+    [counterId: number]: { currentQueue: number | null; status: string | null };
+  } = {};
+  if (Array.isArray(currentQueuesData?.data)) {
+    currentQueuesData.data.forEach(
+      (q: { id: number; currentQueue: number | null; status?: string }) => {
+        currentQueuesDetail[q.id] = {
+          currentQueue: q.currentQueue || null,
+          status: q.status || null,
+        };
+      }
+    );
+  }
 
   // 2. INTEGRASI CREATE, UPDATE, DELETE Hooks
   const createMutation = useCreateCounter();
@@ -198,6 +222,8 @@ const CounterManager: React.FC<CounterManagerProps> = ({ className }) => {
                   counter={counter}
                   isSelected={selectedCounter?.id === counter.id}
                   onClick={handleCounterClick}
+                  currentQueue={currentQueuesDetail[counter.id]?.currentQueue}
+                  queueStatus={currentQueuesDetail[counter.id]?.status}
                 />
               ))}
             </div>

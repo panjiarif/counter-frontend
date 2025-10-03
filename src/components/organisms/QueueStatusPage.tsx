@@ -1,6 +1,10 @@
 "use client";
 import { IQueue } from "@/interfaces/services/queue.interface";
 import React, { useState } from "react";
+import {
+  useSearchQueue,
+  useReleaseQueue,
+} from "@/services/queue/wrapper.service";
 import Button from "../atoms/Button";
 import Card from "../atoms/Card";
 import QueueCard from "../molecules/QueueCard";
@@ -17,9 +21,49 @@ const QueueStatusChecker: React.FC<QueueStatusCheckerProps> = ({
   const [queueDetails, setQueueDetails] = useState<IQueue | null>(null);
   const [notFound, setNotFound] = useState(false);
 
-  const handleSubmit = () => {};
+  // Hook pencarian antrian
+  const {
+    data: searchResult,
+    isLoading: isSearching,
+    refetch,
+  } = useSearchQueue(queueNumber);
+  // Hook release antrian
+  const releaseMutation = useReleaseQueue();
 
-  const handleReleaseQueue = () => {};
+  // Submit form pencarian
+  const handleSubmit = (data: { queueNumber: string }) => {
+    setQueueNumber(data.queueNumber);
+    setQueueDetails(null);
+    setNotFound(false);
+    refetch().then((res) => {
+      const result = res.data?.data;
+      if (Array.isArray(result) && result.length > 0) {
+        setQueueDetails(result[0]);
+        setNotFound(false);
+      } else {
+        setQueueDetails(null);
+        setNotFound(true);
+      }
+    });
+  };
+
+  // Lepaskan antrian
+  const handleReleaseQueue = () => {
+    if (!queueDetails) return;
+    releaseMutation.mutate(
+      {
+        queue_number: queueDetails.queueNumber,
+        counter_id: queueDetails.counter?.id ?? 0,
+      },
+      {
+        onSuccess: () => {
+          setQueueDetails(null);
+          setQueueNumber("");
+          setNotFound(false);
+        },
+      }
+    );
+  };
 
   return (
     <div className={className}>
@@ -31,7 +75,10 @@ const QueueStatusChecker: React.FC<QueueStatusCheckerProps> = ({
           Masukkan nomor antrian Anda untuk memeriksa status
         </p>
 
-        <ReleaseQueueForm onSubmit={handleSubmit} isLoading={false} />
+        <ReleaseQueueForm
+          onSubmit={handleSubmit}
+          isLoading={isSearching || releaseMutation.status === "pending"}
+        />
       </Card>
 
       {queueDetails ? (

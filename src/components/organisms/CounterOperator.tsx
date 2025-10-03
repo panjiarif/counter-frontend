@@ -6,20 +6,112 @@ import Button from "../atoms/Button";
 import Card from "../atoms/Card";
 import Select from "../atoms/Select";
 import CurrentQueueDisplay from "../molecules/CurrentQueueDisplay";
+import { env } from "process";
 
 interface CounterOperatorProps {
   className?: string;
 }
 
+const base_url = env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api/v1";
+
 const CounterOperator: React.FC<CounterOperatorProps> = ({ className }) => {
-  const selectedCounter: ICounter | null = null;
-  const currentQueue: IQueue | null = null;
-  const activeCounters: ICounter[] = [];
-  const handleCounterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {};
+  const [activeCounters, setActiveCounters] = React.useState<ICounter[]>([]);
+  const [selectedCounterId, setSelectedCounterId] = React.useState<string>("");
+  const selectedCounter: ICounter | null =
+    activeCounters.find((c) => c.id.toString() === selectedCounterId) || null;
+  const [currentQueue, setCurrentQueue] = React.useState<IQueue | null>(null);
 
-  const handleNextQueue = () => {};
+  // Fetch current queue saat counter dipilih
+  React.useEffect(() => {
+    if (!selectedCounterId) {
+      setCurrentQueue(null);
+      return;
+    }
+    const fetchCurrentQueue = async () => {
+      try {
+        const res = await fetch(`${base_url}/queues/current`, {
+          credentials: "include",
+        });
+        const json = await res.json();
+        // Asumsi response: { status: true, data: [ ... ] }
+        const found = Array.isArray(json.data)
+          ? json.data.find((q: any) => q.id.toString() === selectedCounterId)
+          : null;
+        if (found && found.currentQueue) {
+          setCurrentQueue({
+            queueNumber: found.currentQueue,
+            status: found.status,
+            counter: { id: found.id, name: found.name },
+            id: found.currentQueue, // id queue sama dengan nomor antrian
+            createdAt: "",
+            updatedAt: "",
+          });
+        } else {
+          setCurrentQueue(null);
+        }
+      } catch (e) {
+        setCurrentQueue(null);
+      }
+    };
+    fetchCurrentQueue();
+  }, [selectedCounterId]);
 
-  const handleSkipQueue = () => {};
+  React.useEffect(() => {
+    const fetchCounters = async () => {
+      try {
+        const res = await fetch(`${base_url}/counters`);
+        const json = await res.json();
+        // Asumsi response: { status: true, data: [ ... ] }
+        setActiveCounters(json.data || []);
+      } catch (e) {
+        // Optional: handle error
+      }
+    };
+    fetchCounters();
+  }, []);
+
+  const handleCounterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCounterId(e.target.value);
+  };
+
+  const handleNextQueue = async () => {
+    if (!selectedCounter) return;
+    try {
+      const res = await fetch(`${base_url}/queues/next`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ counter_id: selectedCounter.id }),
+      });
+      const json = await res.json();
+      console.log("Response next queue:", json);
+      setCurrentQueue(json.queue || null);
+    } catch (e) {
+      console.error("Error next queue:", e);
+    }
+  };
+
+  const handleSkipQueue = async () => {
+    if (!selectedCounter) return;
+    try {
+      const res = await fetch(`${base_url}/queues/skip`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ counter_id: selectedCounter.id }),
+      });
+      const json = await res.json();
+      console.log("Response skip queue:", json);
+      // Update currentQueue ke antrian berikutnya jika ada
+      setCurrentQueue(json.nextQueue || null);
+    } catch (e) {
+      console.error("Error skip queue:", e);
+    }
+  };
 
   return (
     <div className={className}>
@@ -42,7 +134,7 @@ const CounterOperator: React.FC<CounterOperatorProps> = ({ className }) => {
               disabled: false,
             })),
           ]}
-          value={""}
+          value={selectedCounterId}
           onChange={handleCounterChange}
         />
       </Card>
@@ -50,9 +142,9 @@ const CounterOperator: React.FC<CounterOperatorProps> = ({ className }) => {
       {selectedCounter ? (
         <div className="space-y-6">
           <CurrentQueueDisplay
-            counterName={""}
-            queueNumber={1}
-            status={"CLAIMED"}
+            counterName={selectedCounter.name}
+            queueNumber={currentQueue?.queueNumber ?? 0}
+            status={currentQueue?.status ?? "CLAIMED"}
           />
 
           <div className="flex gap-4">

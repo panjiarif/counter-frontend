@@ -18,6 +18,21 @@ const QueueTicketPage: FC<QueueTicketProps> = ({ className }) => {
   const { claimedQueue, setClaimedQueue } = useCounterAppStore();
   const { mutate: claimQueue } = useClaimQueue();
   const { mutate: releaseQueue } = useReleaseQueue();
+  const [debugQueue, setDebugQueue] = useState<any>(null);
+
+  // Debug: fetch current queue after claim
+  const handleRefreshQueue = async () => {
+    try {
+      const res = await fetch("http://localhost:8080/api/v1/queues/current", {
+        credentials: "include",
+      });
+      const json = await res.json();
+      setDebugQueue(json.data || json);
+      console.log("Current queue:", json);
+    } catch (e) {
+      setDebugQueue(null);
+    }
+  };
 
   const handleClaim = () => {
     claimQueue(undefined, {
@@ -78,6 +93,18 @@ const QueueTicketPage: FC<QueueTicketProps> = ({ className }) => {
             >
               Ambil Nomor Antrian
             </Button>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={handleRefreshQueue}
+            >
+              Debug: Refresh Data Antrian
+            </Button>
+            {debugQueue && (
+              <pre className="text-xs bg-gray-100 rounded p-2 mt-2 w-full overflow-auto max-h-40">
+                {JSON.stringify(debugQueue, null, 2)}
+              </pre>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center w-full">
@@ -102,6 +129,18 @@ const QueueTicketPage: FC<QueueTicketProps> = ({ className }) => {
             <Button variant="outline" onClick={handleReleaseQueue}>
               Ambil Nomor Baru
             </Button>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={handleRefreshQueue}
+            >
+              Debug: Refresh Data Antrian
+            </Button>
+            {debugQueue && (
+              <pre className="text-xs bg-gray-100 rounded p-2 mt-2 w-full overflow-auto max-h-40">
+                {JSON.stringify(debugQueue, null, 2)}
+              </pre>
+            )}
           </div>
         )}
       </div>
